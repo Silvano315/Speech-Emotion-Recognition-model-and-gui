@@ -6,6 +6,8 @@ from tqdm import tqdm
 from os.path import expanduser, exists, join, dirname
 from pandas import DataFrame
 import matplotlib.pyplot as plt
+from IPython.display import Audio
+import librosa.display
 
 import kaggle.api
 
@@ -87,3 +89,28 @@ def plot_emotion_distribution(df):
     )
 
     return fig
+
+
+
+
+def waveplot(data, sr, emotion, play_audio = False):
+    plt.figure(figsize=(10,6))
+    plt.title(emotion.capitalize(), size= 20)
+    librosa.display.waveshow(data, sr=sr)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.show()
+
+    if play_audio:
+        Audio(data=data, rate=sr)
+
+def spectogram(data, sr, emotion):
+    x = librosa.stft(data)
+    xdb = librosa.amplitude_to_db(abs(x))
+    plt.figure(figsize=(10,6))
+    plt.title(emotion.capitalize(), size= 20)
+    librosa.display.specshow(xdb, sr=sr, x_axis='time', y_axis='log')   # log to see better low freq, otherwise hz
+    plt.colorbar(format='%+2.0f dB')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Frequency (Hz)')
+    plt.show()
