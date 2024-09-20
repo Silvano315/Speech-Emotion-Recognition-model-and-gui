@@ -8,6 +8,7 @@ from pandas import DataFrame
 import matplotlib.pyplot as plt
 from IPython.display import Audio
 import librosa.display
+from numpy import max, mean
 
 import kaggle.api
 
@@ -113,4 +114,62 @@ def spectogram(data, sr, emotion):
     plt.colorbar(format='%+2.0f dB')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
+    plt.show()
+
+def mel_spectrogram(data, sr, emotion):
+    mel_spec = librosa.feature.melspectrogram(y=data, sr=sr, n_mels=128)
+    mel_db = librosa.power_to_db(mel_spec, ref=max)
+    plt.figure(figsize=(10, 6))
+    plt.title(f'Mel Spectrogram - {emotion.capitalize()}', size=20)
+    librosa.display.specshow(mel_db, sr=sr, x_axis='time', y_axis='mel')
+    plt.colorbar(format='%+2.0f dB')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Frequency (Mel)')
+    plt.show()
+
+def mfcc_plot(data, sr, emotion):
+    mfccs = librosa.feature.mfcc(y=data, sr=sr, n_mfcc=13)
+    plt.figure(figsize=(10, 6))
+    plt.title(f'MFCC - {emotion.capitalize()}', size=20)
+    librosa.display.specshow(mfccs, sr=sr, x_axis='time')
+    plt.colorbar()
+    plt.xlabel('Time (s)')
+    plt.ylabel('MFCC Coefficients')
+    plt.show()
+
+def zcr_plot(data, sr, emotion):
+    zcr = librosa.feature.zero_crossing_rate(data)
+    plt.figure(figsize=(10, 6))
+    plt.title(f'Zero-Crossing Rate - {emotion.capitalize()}', size=20)
+    plt.plot(zcr[0])
+    plt.xlabel('Frames')
+    plt.ylabel('Zero-Crossing Rate')
+    plt.show()
+
+def rms_plot(data, sr, emotion):
+    rms = librosa.feature.rms(y=data)
+    plt.figure(figsize=(10, 6))
+    plt.title(f'RMS Energy - {emotion.capitalize()}', size=20)
+    plt.plot(rms[0])
+    plt.xlabel('Frames')
+    plt.ylabel('RMS Energy')
+    plt.show()
+
+def tonnetz_plot(data, sr, emotion):
+    tonnetz = librosa.feature.tonnetz(y=data, sr=sr)
+    plt.figure(figsize=(10, 6))
+    plt.title(f'Tonnetz - {emotion.capitalize()}', size=20)
+    librosa.display.specshow(tonnetz, sr=sr, x_axis='time')
+    plt.colorbar()
+    plt.xlabel('Time (s)')
+    plt.ylabel('Tonal Centroids')
+    plt.show()
+
+def autocorrelation_plot(data, sr, emotion):
+    autocorr = librosa.autocorrelate(data)
+    plt.figure(figsize=(10, 6))
+    plt.title(f'Autocorrelation - {emotion.capitalize()}', size=20)
+    plt.plot(autocorr)
+    plt.xlabel('Lag')
+    plt.ylabel('Autocorrelation')
     plt.show()
