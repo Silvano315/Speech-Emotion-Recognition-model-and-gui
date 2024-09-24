@@ -21,4 +21,4 @@ def preprocessing_df(df):
     enc = OneHotEncoder()
     y = enc.fit_transform(df[['emotion']])
 
-    return X, y
+    return X, y.toarray()
