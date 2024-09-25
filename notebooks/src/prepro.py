@@ -5,43 +5,57 @@ from numpy import vstack, array, pad, mean, hstack
 from pandas import DataFrame
 from sklearn.preprocessing import OneHotEncoder
 
+import librosa
+import numpy as np
+from scipy.signal import resample
+import random
 
-def extract_features(file_path, duration=3, sr=16000, n_mfcc=20):
-    # Load the audio file
-    audio, sr = load(file_path, duration=duration, sr=sr)
+def extract_features(file_path, n_mfcc=13, n_mels=40, n_fft=2048, hop_length=512):
+    audio, sr = librosa.load(file_path, res_type='kaiser_fast')
+    mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
+    mel_spectrogram = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)
+    chroma = librosa.feature.chroma_stft(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
     
-    # Pad the audio signal to ensure it's of the correct length
-    if len(audio) < sr * duration:
-        audio = pad(audio, (0, sr * duration - len(audio)), 'constant')
-    else:
-        audio = audio[:sr * duration]  # Trim to max duration
+    features = np.concatenate([mfccs, mel_spectrogram, chroma])
+    return features
 
-    # Initialize a list to hold feature vectors
-    features = []
+def extract_features_from_array(audio, sr, n_mfcc=13, n_mels=40, n_fft=2048, hop_length=512):
+    mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
+    mel_spectrogram = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)
+    chroma = librosa.feature.chroma_stft(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    
+    features = np.concatenate([mfccs, mel_spectrogram, chroma])
+    return features
 
-    # Extract MFCC features and their deltas
-    mfccs = mfcc(y=audio, sr=sr, n_mfcc=n_mfcc)
-    mfccs_delta = delta(mfccs)
-    mfccs_delta2 = delta(mfccs, order=2)
+def time_stretch(audio, rate):
+    return librosa.effects.time_stretch(audio, rate=rate)
 
-    # Append the MFCCs and their deltas to the feature list
-    features.append(mean(mfccs, axis=1))
-    features.append(mean(mfccs_delta, axis=1))
-    features.append(mean(mfccs_delta2, axis=1))
+def pitch_shift(audio, sr, n_steps):
+    return librosa.effects.pitch_shift(audio, sr=sr, n_steps=n_steps)
 
-    # Extract other features
-    features.append(mean(chroma_stft(y=audio, sr=sr), axis=1))
-    features.append(mean(spectral_centroid(y=audio, sr=sr), axis=1))
-    features.append(mean(spectral_bandwidth(y=audio, sr=sr), axis=1))
-    features.append(mean(spectral_contrast(y=audio, sr=sr), axis=1))
-    features.append(mean(spectral_rolloff(y=audio, sr=sr), axis=1))
-    features.append(mean(zero_crossing_rate(y=audio), axis=1))
-    features.append(mean(rms(y=audio), axis=1))
+def add_noise(audio, noise_factor):
+    noise = np.random.randn(len(audio))
+    return audio + noise_factor * noise
 
-    # Combine all features into a single feature vector
-    feature_vector = hstack(features)
+def data_augmentation(audio, sr):
+    augmented = []
+    augmented.append(time_stretch(audio, rate=random.uniform(0.8, 1.2)))
+    augmented.append(pitch_shift(audio, sr, n_steps=random.uniform(-4, 4)))
+    augmented.append(add_noise(audio, noise_factor=random.uniform(0.005, 0.02)))
+    return augmented
 
-    return feature_vector
+def preprocess_and_augment(file_path):
+    audio, sr = librosa.load(file_path, res_type='kaiser_fast')
+    features = extract_features(file_path)  # Extract features from the original audio
+    augmented_audio = data_augmentation(audio, sr)  # Augment the audio
+    # Extract features from the augmented audio arrays
+    augmented_features = [extract_features_from_array(aug, sr) for aug in augmented_audio]
+    return [features] + augmented_features
+from sklearn.preprocessing import StandardScaler
+
+def standardize_features(features):
+    scaler = StandardScaler()
+    return scaler.fit_transform(features)
 
 
 def preprocessing_df(df):
